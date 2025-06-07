@@ -1,16 +1,18 @@
-import discord
 import os
 import requests
+import nextcord
+from nextcord.ext import commands
+from nextcord import Interaction, SlashOption
 
-intents = discord.Intents.default()
-bot = discord.Bot(intents=intents)
+intents = nextcord.Intents.default()
+bot = commands.Bot(intents=intents)
 
 @bot.event
 async def on_ready():
     print(f"Bot đã đăng nhập với tên: {bot.user}")
 
 @bot.slash_command(name="getkey", description="Lấy TikTok Stream Key mới nhất")
-async def getkey(ctx):
+async def getkey(interaction: Interaction):
     sessionid = os.getenv("SESSIONID")
     sid_tt = os.getenv("SID_TT")
 
@@ -28,8 +30,10 @@ async def getkey(ctx):
         stream_key = stream_url.split("/")[-1]
         rtmp_url = "/".join(stream_url.split("/")[:-1])
 
-        await ctx.respond(f"**TikTok Stream Key**\n🔑 Key: `{stream_key}`\n🌐 RTMP: `{rtmp_url}`\n⏰ Hiệu lực ~2h")
+        await interaction.response.send_message(
+            f"**TikTok Stream Key**\n🔑 Key: `{stream_key}`\n🌐 RTMP: `{rtmp_url}`\n⏰ Hiệu lực ~2h"
+        )
     except Exception as e:
-        await ctx.respond(f"Lỗi lấy key: {e}")
+        await interaction.response.send_message(f"❌ Lỗi lấy key: {e}")
 
 bot.run(os.getenv("DISCORD_TOKEN"))
