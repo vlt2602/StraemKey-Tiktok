@@ -1,39 +1,23 @@
+import discord
 import os
-import requests
-import nextcord
-from nextcord.ext import commands
-from nextcord import Interaction, SlashOption
+import asyncio
 
-intents = nextcord.Intents.default()
-bot = commands.Bot(intents=intents)
+TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+GUILD_ID = int(os.getenv("DISCORD_GUILD_ID"))
 
-@bot.event
-async def on_ready():
-    print(f"Bot đã đăng nhập với tên: {bot.user}")
+class CleanerBot(discord.Client):
+    async def on_ready(self):
+        app = await self.application_info()
+        commands = await self.http.get_guild_application_commands(app.id, GUILD_ID)
 
-@bot.slash_command(name="getkey", description="Lấy TikTok Stream Key mới nhất")
-async def getkey(interaction: Interaction):
-    sessionid = os.getenv("SESSIONID")
-    sid_tt = os.getenv("SID_TT")
+        print(f"🔍 Found {len(commands)} command(s) in GUILD {GUILD_ID}")
+        for cmd in commands:
+            print(f"🗑️ Deleting: /{cmd['name']}")
+            await self.http.delete_guild_application_command(app.id, GUILD_ID, cmd['id'])
 
-    headers = {
-        "cookie": f"sessionid={sessionid}; sid_tt={sid_tt};",
-        "referer": "https://www.tiktok.com/",
-        "user-agent": "Mozilla/5.0"
-    }
+        print("✅ All slash commands deleted.")
+        await self.close()
 
-    try:
-        res = requests.get("https://livecenter.tiktok.com/webcast/room/create/", headers=headers)
-        data = res.json()
-
-        stream_url = data['data']['push_url']
-        stream_key = stream_url.split("/")[-1]
-        rtmp_url = "/".join(stream_url.split("/")[:-1])
-
-        await interaction.response.send_message(
-            f"**TikTok Stream Key**\n🔑 Key: `{stream_key}`\n🌐 RTMP: `{rtmp_url}`\n⏰ Hiệu lực ~2h"
-        )
-    except Exception as e:
-        await interaction.response.send_message(f"❌ Lỗi lấy key: {e}")
-
-bot.run(os.getenv("DISCORD_TOKEN"))
+intents = discord.Intents.default()
+client = CleanerBot(intents=intents)
+client.run(TOKEN)
